@@ -63,15 +63,15 @@ $$
 w_{\text{interaction}} \cdot \tilde{\eta}_{\text{interaction}}
 $$
 
-where:
+where
 
 $$
-w_{\text{linear}} = \sqrt{\text{comp\_linear}}, \quad
-w_{\text{interaction}} = \sqrt{1 - \text{comp\_linear}}
+w_{\text{linear}} = \sqrt{\mathrm{comp\_linear}}, \qquad
+w_{\text{interaction}} = \sqrt{1 - \mathrm{comp\_linear}}
 $$
 
 - `comp_linear = 0.8` → mostly linear signal  
-- `comp_linear = 0.2` → mostly interaction signal  
+- `comp_linear = 0.2` → mostly interaction signal
 
 ---
 

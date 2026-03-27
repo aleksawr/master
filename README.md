@@ -179,7 +179,7 @@ Y_true <- signal + eps
 This ensures:
 
 $$
-\mathrm{cor}(\eta, Y^*)^2 \approx R^2
+\mathrm{corr}(\eta, Y^*)^2 \approx R^2
 $$
 
 ------------------------------------------------------------------------
@@ -204,13 +204,12 @@ X_obs <- apply(X_true, 2, add_measurement_error, rho = rho_X)
 Y_obs <- add_measurement_error(Y_true, rho_Y)
 ```
 
-This ensures:
+This ensures that the reliability of the observed variables matches the target values:
 
 $$
-\mathrm{cor}(X, X^*)^2 \approx \rho_X, \quad
-\mathrm{cor}(Y, Y^*)^2 \approx \rho_Y
+\operatorname{cor}(X, X^{*})^{2} \approx \rho_{X}, \quad
+\operatorname{cor}(Y, Y^{*})^{2} \approx \rho_{Y}
 $$
-
 
 ------------------------------------------------------------------------
 

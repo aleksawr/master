@@ -207,8 +207,11 @@ Y_obs <- add_measurement_error(Y_true, rho_Y)
 This ensures that the reliability of the observed variables matches the target values:
 
 $$
-cor(X, X^{*})^{2} \approx \rho_{X}, \quad
-cor(Y, Y^{*})^{2} \approx \rho_{Y}
+\rho_X \approx cor(X, X^{\ast})^2
+$$
+
+$$
+\rho_Y \approx cor(Y, Y^{\ast})^2
 $$
 
 ------------------------------------------------------------------------
@@ -218,7 +221,6 @@ $$
 Models are fitted on $(X, Y)$, while the true data-generating process operates on $(X^*, Y^*)$.
 
 Because both predictors and outcomes contain measurement error, models estimate attenuated relationships rather than the true signal.
-
 
 ------------------------------------------------------------------------
 

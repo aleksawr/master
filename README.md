@@ -4,8 +4,8 @@ This simulation study examines how **measurement error** and **signal structure*
 
 The design explicitly separates:
 
--   the true underlying signal\
--   random noise\
+-   the true underlying signal
+-   random noise
 -   measurement error in observed variables
 
 This allows us to evaluate whether gains from flexible models reflect genuine structure or are limited by data quality.
@@ -22,9 +22,9 @@ This has direct implications for model comparison. Improvements in predictive pe
 
 This simulation tests that distinction by manipulating:
 
--   signal strength ($R^2$)\
--   predictor reliability ($\rho_X$)\
--   outcome reliability ($\rho_Y$)\
+-   signal strength ($R^2$)
+-   predictor reliability ($\rho_X$)
+-   outcome reliability ($\rho_Y$)
 -   signal composition (linear vs. interaction effects)
 
 Model performance is evaluated relative to a regression baseline to determine whether gains from flexible models persist under measurement error.
@@ -35,9 +35,9 @@ Model performance is evaluated relative to a regression baseline to determine wh
 
 The simulation is constructed in four conceptual steps:
 
-1.  Generate true predictors\
-2.  Construct the signal ($\eta$)\
-3.  Add noise to form the true outcome\
+1.  Generate true predictors
+2.  Construct the signal ($\eta$)
+3.  Add noise to form the true outcome
 4.  Add measurement error to obtain observed data
 
 This separates structural relationships from noise and measurement error.
@@ -207,11 +207,11 @@ Y_obs <- add_measurement_error(Y_true, rho_Y)
 This ensures that the reliability of the observed variables matches the target values:
 
 $$
-\rho_X \approx cor(X, X^{\ast})^2
+rho_X \approx cor(X, X^{\ast})^2
 $$
 
 $$
-\rho_Y \approx cor(Y, Y^{\ast})^2
+rho_Y \approx cor(Y, Y^{\ast})^2
 $$
 
 ------------------------------------------------------------------------
@@ -243,14 +243,14 @@ These factors define the conditions under which predictive performance is evalua
 
 The following aspects of the data-generating process are held constant across conditions:
 
--   Sample size: $N = 1000$\
--   Number of predictors: $p = 20$\
--   Number of true predictors: 4\
--   True coefficients: $\beta = (0.6, 0.5, 0.4, 0.3)$\
--   Remaining predictors: noise variables ($\beta = 0$)\
--   Interaction structure: $X_1^* \cdot X_2^*$\
--   Predictor correlation: independent predictors ($r = 0$)\
--   Train/test split: 70/30\
+-   Sample size: $N = 1000$
+-   Number of predictors: $p = 20$
+-   Number of true predictors: 4
+-   True coefficients: $\beta = (0.6, 0.5, 0.4, 0.3)$
+-   Remaining predictors: noise variables ($\beta = 0$)
+-   Interaction structure: $X_1^* \cdot X_2^*$
+-   Predictor correlation: independent predictors ($r = 0$)
+-   Train/test split: 70/30
 -   Number of replications per condition: (e.g., 100 or 200)
 
 ------------------------------------------------------------------------
@@ -332,8 +332,8 @@ No model can recover variance that is not present in the observed outcome.
 
 The simulation separates:
 
--   signal\
--   noise\
+-   signal
+-   noise
 -   measurement error
 
 to evaluate when flexible models provide meaningful gains and when performance is limited by data quality.

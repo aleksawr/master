@@ -218,7 +218,7 @@ $$
 
 ### Observed Data
 
-Models are fitted on $(X, Y)$, while the true data-generating process operates on $(X^*, Y^*)$.
+Models are fitted on $(X, Y)$, while the true data-generating process operates on $(X^*, Y^*)$ .
 
 Because both predictors and outcomes contain measurement error, models estimate attenuated relationships rather than the true signal.
 
@@ -230,9 +230,9 @@ The simulation follows a factorial design in which key parameters are systematic
 
 ### Manipulated factors
 
--   Latent signal strength ($R^2$): $\{0.20, 0.50, 0.80\}$\
--   Predictor reliability ($\rho_X$): $\{0.60, 0.80, 1.00\}$\
--   Outcome reliability ($\rho_Y$): $\{0.60, 0.80, 1.00\}$\
+-   Latent signal strength ($R^2$): $\{0.20, 0.50, 0.80\}$
+-   Predictor reliability ($\rho_X$): $\{0.60, 0.80, 1.00\}$
+-   Outcome reliability ($\rho_Y$): $\{0.60, 0.80, 1.00\}$
 -   Signal composition ($c_{\mathrm{linear}}$): $\{0.20, 0.50, 0.80\}$
 
 These factors define the conditions under which predictive performance is evaluated. Each combination of manipulated factors defines one simulation condition, allowing the effects of measurement error and structural complexity to be evaluated independently.

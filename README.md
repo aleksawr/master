@@ -218,7 +218,7 @@ $$
 
 ### Observed Data
 
-Models are fitted on $(X, Y)$, while the true data-generating process operates on $(X^*, Y^*)$ .
+Models are fitted on $(X, Y)$, while the true data-generating process operates on $(X^{\ast}, Y^{\ast})$.
 
 Because both predictors and outcomes contain measurement error, models estimate attenuated relationships rather than the true signal.
 

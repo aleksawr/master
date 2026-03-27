@@ -207,8 +207,8 @@ Y_obs <- add_measurement_error(Y_true, rho_Y)
 This ensures that the reliability of the observed variables matches the target values:
 
 $$
-\operatorname{cor}(X, X^{*})^{2} \approx \rho_{X}, \quad
-\operatorname{cor}(Y, Y^{*})^{2} \approx \rho_{Y}
+cor(X, X^{*})^{2} \approx \rho_{X}, \quad
+cor(Y, Y^{*})^{2} \approx \rho_{Y}
 $$
 
 ------------------------------------------------------------------------

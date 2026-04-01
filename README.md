@@ -203,6 +203,19 @@ Because both predictors and outcomes contain measurement error, models estimate 
 
 ------------------------------------------------------------------------
 
+## Realized quantities
+
+In addition to target design parameters, the simulation records realized values within each dataset, including:
+
+- realized latent $R^2$
+- realized predictor reliability
+- realized outcome reliability
+- realized signal composition (linear vs interaction)
+
+These quantities allow verification that the data-generating process behaves as intended and enable interpretation of performance relative to actual signal properties.
+
+------------------------------------------------------------------------
+
 ## Simulation Workflow
 
 ### Data generation and evaluation pipeline
@@ -336,6 +349,7 @@ The simulation follows a factorial design in which key parameters are systematic
 -   Predictor reliability ($\rho_X$): $\{0.60, 0.80, 1.00\}$
 -   Outcome reliability ($\rho_Y$): $\{0.60, 0.80, 1.00\}$
 -   Signal composition ($c_{\mathrm{linear}}$): $\{0.20, 0.50, 0.80\}$
+-   Predictor intercorrelation ($\rho_{\text{between }X}$): e.g., $\{0.0, 0.3\}$
 
 These factors define the conditions under which predictive performance is evaluated. Each combination of manipulated factors defines one simulation condition, allowing the effects of measurement error and structural complexity to be evaluated independently.
 
@@ -351,9 +365,21 @@ The following aspects of the data-generating process are held constant across co
 -   True coefficients: $\beta = (0.6, 0.5, 0.4, 0.3)$
 -   Remaining predictors: noise variables ($\beta = 0$)
 -   Interaction structure: $X_1^* \cdot X_2^*$
--   Predictor correlation: independent predictors ($r = 0$)
 -   Train/test split: 70/30
 -   Number of replications per condition: (e.g., 100 or 200)
+
+------------------------------------------------------------------------
+
+## Model estimation procedure
+
+For each simulated dataset:
+
+1. Data are split into training and test sets (70/30).
+2. All models are fitted on the training data only.
+3. XGBoost hyperparameters are selected using cross-validation within the training set.
+4. Final models are evaluated on the held-out test set.
+
+This ensures that all reported performance metrics reflect out-of-sample predictive accuracy and prevents information leakage.
 
 ------------------------------------------------------------------------
 
@@ -377,13 +403,27 @@ $$
 
 ------------------------------------------------------------------------
 
-### XGBoost
+### OLS (oracle model)
+
+$$
+Y = \beta_0 + \sum_{j=1}^{4} \beta_j X_j + \gamma (X_1 X_2) + \epsilon
+$$
+
+The oracle model includes only the true predictors and the true interaction term.  
+It represents the best possible linear model under correct specification and serves as a benchmark for evaluating model recovery of the latent signal.
+
+------------------------------------------------------------------------
+
+### XGBoost (cross-validated)
 
 $$
 Y = f(X) + \epsilon
 $$
 
-XGBoost is a flexible model that can capture nonlinearities and interactions.
+XGBoost is a flexible machine learning model capable of capturing nonlinearities and interaction effects.  
+Model complexity is controlled via cross-validation, where hyperparameters are selected using a constrained grid search and early stopping.
+
+Cross-validation is performed within the training data only, ensuring that test performance remains strictly out-of-sample.
 
 ------------------------------------------------------------------------
 
@@ -418,12 +458,13 @@ These quantities measure whether flexible models provide gains beyond what is ex
 
 ------------------------------------------------------------------------
 
-## Key Constraint
+## Key constraint
 
-Predictive performance is limited by outcome reliability:
+Predictive performance is fundamentally limited by measurement error in the outcome.  
+The maximum observable predictive accuracy is bounded by the reliability of the outcome and the strength of the latent signal:
 
 $$
-R^2_{\mathrm{observed}} \leq \rho_Y
+R^2_{\mathrm{observed}} \leq \rho_Y \cdot R^2_{\mathrm{latent}}
 $$
 
 No model can recover variance that is not present in the observed outcome.

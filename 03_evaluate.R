@@ -22,6 +22,7 @@ evaluate_predictions <- function(
     rho_X,
     rho_Y,
     comp_linear,
+    rho_betweenX,
     rep,
     realized_latent_R2,
     realized_rho_X,
@@ -30,12 +31,16 @@ evaluate_predictions <- function(
     realized_rho_Y,
     realized_linear_share,
     realized_interaction_share,
-    realized_lin_int_cor
+    realized_lin_int_cor,
+    realized_mean_cor_X = NA_real_
 ) {
   
-  if (!all(c("ols_base", "ols_true_interaction", "xgb") %in% names(preds))) {
+  required_models <- c("ols_base", "ols_true_interaction", "xgb")
+  if (!all(required_models %in% names(preds))) {
     stop("preds must contain 'ols_base', 'ols_true_interaction', and 'xgb'")
   }
+  
+  has_oracle <- "ols_oracle" %in% names(preds)
   
   yhat_ols_base <- preds[["ols_base"]]
   yhat_ols_true_interaction <- preds[["ols_true_interaction"]]
@@ -49,12 +54,23 @@ evaluate_predictions <- function(
   r2_ols_true_interaction <- r2_fun(y_test, yhat_ols_true_interaction)
   r2_xgb <- r2_fun(y_test, yhat_xgb)
   
+  if (has_oracle) {
+    yhat_ols_oracle <- preds[["ols_oracle"]]
+    
+    rmse_ols_oracle <- rmse_fun(y_test, yhat_ols_oracle)
+    r2_ols_oracle <- r2_fun(y_test, yhat_ols_oracle)
+  } else {
+    rmse_ols_oracle <- NA_real_
+    r2_ols_oracle <- NA_real_
+  }
+  
   data.frame(
     condition_id = condition_id,
     latent_R2 = latent_R2,
     rho_X = rho_X,
     rho_Y = rho_Y,
     comp_linear = comp_linear,
+    rho_betweenX = rho_betweenX,
     rep = rep,
     dataset = "test",
     
@@ -66,21 +82,31 @@ evaluate_predictions <- function(
     realized_linear_share = realized_linear_share,
     realized_interaction_share = realized_interaction_share,
     realized_lin_int_cor = realized_lin_int_cor,
+    realized_mean_cor_X = realized_mean_cor_X,
     
     rmse_ols_base = rmse_ols_base,
     rmse_ols_true_interaction = rmse_ols_true_interaction,
+    rmse_ols_oracle = rmse_ols_oracle,
     rmse_xgb = rmse_xgb,
     
     delta_rmse_true_vs_base = rmse_ols_true_interaction - rmse_ols_base,
+    delta_rmse_oracle_vs_base = rmse_ols_oracle - rmse_ols_base,
+    delta_rmse_oracle_vs_true = rmse_ols_oracle - rmse_ols_true_interaction,
     delta_rmse_xgb_vs_base = rmse_xgb - rmse_ols_base,
     delta_rmse_xgb_vs_true = rmse_xgb - rmse_ols_true_interaction,
+    delta_rmse_xgb_vs_oracle = rmse_xgb - rmse_ols_oracle,
     
     r2_ols_base = r2_ols_base,
     r2_ols_true_interaction = r2_ols_true_interaction,
+    r2_ols_oracle = r2_ols_oracle,
     r2_xgb = r2_xgb,
     
     delta_r2_true_vs_base = r2_ols_true_interaction - r2_ols_base,
+    delta_r2_oracle_vs_base = r2_ols_oracle - r2_ols_base,
+    delta_r2_oracle_vs_true = r2_ols_oracle - r2_ols_true_interaction,
     delta_r2_xgb_vs_base = r2_xgb - r2_ols_base,
-    delta_r2_xgb_vs_true = r2_xgb - r2_ols_true_interaction
+    delta_r2_xgb_vs_true = r2_xgb - r2_ols_true_interaction,
+    delta_r2_xgb_vs_oracle = r2_xgb - r2_ols_oracle
   )
 }
+

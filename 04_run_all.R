@@ -38,7 +38,8 @@ run_one_job <- function(this_job, cond_grid, sim_design) {
     latent_R2 = this_cond$latent_R2,
     rho_X = this_cond$rho_X,
     rho_Y = this_cond$rho_Y,
-    comp_linear = this_cond$comp_linear
+    comp_linear = this_cond$comp_linear,
+    rho_betweenX = this_cond$rho_betweenX
   )
   
   sim_data <- sim_out$data
@@ -53,12 +54,14 @@ run_one_job <- function(this_job, cond_grid, sim_design) {
   
   ols_base_fit <- fit_ols_base(train_data)
   ols_true_interaction_fit <- fit_ols_true_interaction(train_data)
+  ols_oracle_fit <- fit_ols_oracle(train_data)
   xgb_fit <- fit_xgb(train_data)
   
   preds <- predict_models(
     test_data = test_data,
     ols_base = ols_base_fit,
     ols_true_interaction = ols_true_interaction_fit,
+    ols_oracle = ols_oracle_fit,
     xgb_fit = xgb_fit
   )
   
@@ -70,6 +73,7 @@ run_one_job <- function(this_job, cond_grid, sim_design) {
     rho_X = this_cond$rho_X,
     rho_Y = this_cond$rho_Y,
     comp_linear = this_cond$comp_linear,
+    rho_betweenX = this_cond$rho_betweenX,
     rep = r,
     
     realized_latent_R2 = sim_out$realized_latent_R2,
@@ -79,13 +83,15 @@ run_one_job <- function(this_job, cond_grid, sim_design) {
     realized_rho_Y = sim_out$realized_rho_Y,
     realized_linear_share = sim_out$realized_linear_share,
     realized_interaction_share = sim_out$realized_interaction_share,
-    realized_lin_int_cor = sim_out$realized_lin_int_cor
+    realized_lin_int_cor = sim_out$realized_lin_int_cor,
+    realized_mean_cor_X = sim_out$realized_mean_cor_X
   )
   
   metrics_rep
 }
 
-n_cores <- max(1, detectCores() - 1)
+# Start conservatively
+n_cores <- 2
 cl <- makeCluster(n_cores)
 
 clusterExport(cl, varlist = c(
@@ -99,9 +105,12 @@ clusterExport(cl, varlist = c(
   "generate_Y_obs",
   "compute_realized_rho_X",
   "compute_realized_rho_Y",
+  "compute_mean_cor_X",
+  "make_sigma_equicorr",
   "split_data",
   "fit_ols_base",
   "fit_ols_true_interaction",
+  "fit_ols_oracle",
   "fit_xgb",
   "predict_models",
   "evaluate_predictions",
@@ -109,8 +118,10 @@ clusterExport(cl, varlist = c(
   "r2_fun",
   "run_one_job",
   "x_names",
+  "oracle_x_names",
   "ols_base_formula",
-  "ols_true_interaction_formula"
+  "ols_true_interaction_formula",
+  "ols_oracle_formula"
 ), envir = environment())
 
 clusterEvalQ(cl, {
@@ -119,6 +130,7 @@ clusterEvalQ(cl, {
   source("02_fit_models.R")
   source("03_evaluate.R")
   library(xgboost)
+  library(MASS)
   NULL
 })
 
@@ -142,7 +154,16 @@ results_df <- do.call(rbind, results_list)
 cat("Rows:", nrow(results_df), "\n")
 cat("Unique conditions:", length(unique(results_df$condition_id)), "\n")
 
-write.csv(results_df, "results_replication_level.csv", row.names = FALSE)
+dir.create(file.path("runs", run_label), recursive = TRUE, showWarnings = FALSE)
+
+write.csv(
+  results_df,
+  file.path("runs", run_label, "results_replication_level.csv"),
+  row.names = FALSE
+)
+
+cat("Finished. Results saved to:\n")
+cat(file.path("runs", run_label, "results_replication_level.csv"), "\n")
 
 cat("Finished. Results saved to results_replication_level.csv\n")
 print(head(results_df))

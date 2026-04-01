@@ -6,11 +6,30 @@
 #   observed data + realized condition diagnostics
 # ============================================================
 
+if (!requireNamespace("MASS", quietly = TRUE)) {
+  stop("Package 'MASS' is required.")
+}
+
+# -----------------------------
+# 0. Helper: equicorrelation matrix
+# -----------------------------
+make_sigma_equicorr <- function(p, rho_betweenX) {
+  Sigma <- matrix(rho_betweenX, nrow = p, ncol = p)
+  diag(Sigma) <- 1
+  Sigma
+}
+
 # -----------------------------
 # 1. Generate latent predictors X*
 # -----------------------------
-generate_X_true <- function(N, p) {
-  X_true <- matrix(rnorm(N * p, mean = 0, sd = 1), nrow = N, ncol = p)
+generate_X_true <- function(N, p, rho_betweenX = 0) {
+  if (rho_betweenX == 0) {
+    X_true <- matrix(rnorm(N * p, mean = 0, sd = 1), nrow = N, ncol = p)
+  } else {
+    Sigma <- make_sigma_equicorr(p = p, rho_betweenX = rho_betweenX)
+    X_true <- MASS::mvrnorm(n = N, mu = rep(0, p), Sigma = Sigma)
+  }
+  
   colnames(X_true) <- paste0("X", seq_len(p))
   X_true
 }
@@ -131,11 +150,20 @@ compute_realized_rho_Y <- function(Y_true, Y_obs) {
 }
 
 # -----------------------------
+# 6B. Realized predictor correlation
+# -----------------------------
+compute_mean_cor_X <- function(X_true) {
+  cor_mat <- cor(X_true)
+  mean(cor_mat[upper.tri(cor_mat)])
+}
+
+# -----------------------------
 # 7. Main wrapper
 # -----------------------------
-generate_dataset <- function(N, p, beta, latent_R2, rho_X, rho_Y, comp_linear) {
+generate_dataset <- function(N, p, beta, latent_R2, rho_X, rho_Y, comp_linear,
+                             rho_betweenX = 0) {
   
-  X_true <- generate_X_true(N, p)
+  X_true <- generate_X_true(N, p, rho_betweenX = rho_betweenX)
   
   y_lat <- generate_Y_true(
     X_true = X_true,
@@ -151,6 +179,7 @@ generate_dataset <- function(N, p, beta, latent_R2, rho_X, rho_Y, comp_linear) {
   
   rhoX_info <- compute_realized_rho_X(X_true, X_obs)
   realized_rho_Y <- compute_realized_rho_Y(Y_true, Y_obs)
+  realized_mean_cor_X <- compute_mean_cor_X(X_true)
   
   data_obs <- data.frame(Y = Y_obs, X_obs, check.names = FALSE)
   
@@ -179,6 +208,7 @@ generate_dataset <- function(N, p, beta, latent_R2, rho_X, rho_Y, comp_linear) {
     realized_rho_X = rhoX_info$mean_rho_X,
     realized_rho_X_min = rhoX_info$min_rho_X,
     realized_rho_X_max = rhoX_info$max_rho_X,
-    realized_rho_Y = realized_rho_Y
+    realized_rho_Y = realized_rho_Y,
+    realized_mean_cor_X = realized_mean_cor_X
   )
 }

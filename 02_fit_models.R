@@ -2,10 +2,23 @@
 # 02_fit_models.R
 # Purpose:
 #   Split data, fit models, predict on test set
+# Notes:
+#   Includes:
+#     1) OLS with all 20 predictors (main effects only)
+#     2) OLS with all 20 predictors + true interaction X1:X2
+#     3) Oracle OLS with only true predictors X1-X4 + X1:X2
+#     4) XGBoost on all 20 predictors
 # ============================================================
 
+# -----------------------------
+# 1. Predictor names
+# -----------------------------
 x_names <- paste0("X", 1:20)
+oracle_x_names <- paste0("X", 1:4)
 
+# -----------------------------
+# 2. Model formulas
+# -----------------------------
 ols_base_formula <- as.formula(
   paste("Y ~", paste(x_names, collapse = " + "))
 )
@@ -14,6 +27,13 @@ ols_true_interaction_formula <- as.formula(
   paste("Y ~", paste(x_names, collapse = " + "), "+ X1:X2")
 )
 
+ols_oracle_formula <- as.formula(
+  paste("Y ~", paste(oracle_x_names, collapse = " + "), "+ X1:X2")
+)
+
+# -----------------------------
+# 3. Train/test split
+# -----------------------------
 split_data <- function(data, train_prop = 0.70) {
   n <- nrow(data)
   train_idx <- sample.int(n, size = floor(train_prop * n))
@@ -25,6 +45,9 @@ split_data <- function(data, train_prop = 0.70) {
   )
 }
 
+# -----------------------------
+# 4. OLS models
+# -----------------------------
 fit_ols_base <- function(train_data) {
   list(
     fit = lm(ols_base_formula, data = train_data),
@@ -39,10 +62,23 @@ fit_ols_true_interaction <- function(train_data) {
   )
 }
 
+fit_ols_oracle <- function(train_data) {
+  list(
+    fit = lm(ols_oracle_formula, data = train_data),
+    formula = ols_oracle_formula
+  )
+}
+
+# -----------------------------
+# 5. XGBoost model
+
+# -----------------------------
+# 5. XGBoost model
+# -----------------------------
 fit_xgb <- function(train_data,
-                    nfold = 5,
+                    nfold = 3,
                     seed = 123,
-                    use_1se = FALSE) {
+                    use_1se = TRUE) {
   
   if (!requireNamespace("xgboost", quietly = TRUE)) {
     stop("Package 'xgboost' is required.")
@@ -54,13 +90,12 @@ fit_xgb <- function(train_data,
   dtrain <- xgboost::xgb.DMatrix(data = X_train, label = y_train)
   
   grid <- expand.grid(
-    eta = c(0.03, 0.05, 0.10),
-    max_depth = c(2, 3, 4),
+    eta = c(0.05, 0.10),
+    max_depth = c(2, 3),
     min_child_weight = c(1, 5),
     subsample = c(0.8),
     colsample_bytree = c(0.8),
     lambda = c(1),
-    nrounds = c(100, 200, 300),
     stringsAsFactors = FALSE
   )
   
@@ -84,7 +119,7 @@ fit_xgb <- function(train_data,
     cv_fit <- xgboost::xgb.cv(
       params = params,
       data = dtrain,
-      nrounds = grid$nrounds[i],
+      nrounds = 300,
       nfold = nfold,
       verbose = 0,
       early_stopping_rounds = 20,
@@ -102,7 +137,6 @@ fit_xgb <- function(train_data,
       subsample = grid$subsample[i],
       colsample_bytree = grid$colsample_bytree[i],
       lambda = grid$lambda[i],
-      nrounds = grid$nrounds[i],
       best_iteration = best_iter,
       cv_rmse = best_rmse,
       cv_rmse_sd = best_rmse_sd
@@ -161,9 +195,13 @@ fit_xgb <- function(train_data,
   )
 }
 
+# -----------------------------
+# 6. Prediction helper
+# -----------------------------
 predict_models <- function(test_data,
                            ols_base = NULL,
                            ols_true_interaction = NULL,
+                           ols_oracle = NULL,
                            xgb_fit = NULL) {
   
   X_test <- as.matrix(test_data[, x_names, drop = FALSE])
@@ -171,7 +209,9 @@ predict_models <- function(test_data,
   preds <- list()
   
   if (!is.null(ols_base)) {
-    preds$ols_base <- as.numeric(predict(ols_base$fit, newdata = test_data))
+    preds$ols_base <- as.numeric(
+      predict(ols_base$fit, newdata = test_data)
+    )
   }
   
   if (!is.null(ols_true_interaction)) {
@@ -180,8 +220,16 @@ predict_models <- function(test_data,
     )
   }
   
+  if (!is.null(ols_oracle)) {
+    preds$ols_oracle <- as.numeric(
+      predict(ols_oracle$fit, newdata = test_data)
+    )
+  }
+  
   if (!is.null(xgb_fit)) {
-    preds$xgb <- as.numeric(predict(xgb_fit$fit, newdata = X_test))
+    preds$xgb <- as.numeric(
+      predict(xgb_fit$fit, newdata = X_test)
+    )
   }
   
   preds

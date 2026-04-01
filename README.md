@@ -481,15 +481,15 @@ These quantities measure whether flexible models provide gains beyond what is ex
 
 ## Key constraint
 
-Predictive performance is fundamentally limited by measurement error in the outcome. Because the observed outcome \( Y \) contains random measurement error in addition to the true latent variable \( Y^* \), not all variance in \( Y \) is predictable.
+Predictive performance is fundamentally limited by measurement error in the outcome. Because the observed outcome $Y$ contains random measurement error in addition to the true latent variable $Y^{\ast}$, not all variance in $Y$ is predictable.
 
 Under classical additive measurement error assumptions, the proportion of variance in the observed outcome that can be explained by any model is bounded by the reliability of the outcome:
 
 $$
-R^2_{\mathrm{observed}} \leq \rho_Y \cdot R^2_{\mathrm{latent}}
+R^2_{\text{observed}} \leq \rho_Y \cdot R^2_{\text{latent}}
 $$
 
-where \( \rho_Y \) denotes outcome reliability and \( R^2_{\mathrm{latent}} \) represents the proportion of variance in the latent outcome \( Y^* \) explained by the true signal.
+where $\rho_Y$ denotes outcome reliability and $R^2_{\text{latent}}$ represents the proportion of variance in the latent outcome $Y^{\ast}$ explained by the true signal.
 
 This relationship implies that predictive performance is constrained not only by model capacity, but also by the amount of true variance present in the observed data.
 

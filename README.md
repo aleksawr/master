@@ -195,6 +195,18 @@ $$
 
 ------------------------------------------------------------------------
 
+## Type of variables
+
+All variables in the simulation are continuous.
+
+Latent predictors \( X^* \) are generated as independent standard normal variables and represent error-free constructs. The latent outcome \( Y^* \) is constructed as a continuous function of these predictors, combining linear effects and interaction effects with random noise.
+
+Observed variables \( X \) and \( Y \) are obtained by adding measurement error to their latent counterparts, resulting in continuous but fallible indicators. These observed variables are used as inputs to all predictive models.
+
+Thus, the simulation reflects a setting in which models operate on noisy measurements of underlying continuous constructs, as is typical in psychological and social science data.
+
+------------------------------------------------------------------------
+
 ### Observed Data
 
 Models are fitted on $(X, Y)$, while the true data-generating process operates on $(X^{\ast}, Y^{\ast})$.
@@ -385,13 +397,15 @@ This ensures that all reported performance metrics reflect out-of-sample predict
 
 ## Models
 
+All models are trained on observed data \( (X, Y) \), i.e., noisy measurements of the underlying latent variables.
+
 ### OLS (baseline)
 
 $$
 Y = \beta_0 + \sum_{j=1}^{p} \beta_j X_j + \epsilon
 $$
 
-OLS provides a reference with known behavior under measurement error.
+OLS provides a reference model using all observed predictors with main effects only.
 
 ------------------------------------------------------------------------
 
@@ -400,6 +414,8 @@ OLS provides a reference with known behavior under measurement error.
 $$
 Y = \beta_0 + \sum_{j=1}^{p} \beta_j X_j + \gamma (X_1 X_2) + \epsilon
 $$
+
+This model extends the baseline by including the true interaction term present in the data-generating process.
 
 ------------------------------------------------------------------------
 
@@ -410,11 +426,11 @@ Y = \beta_0 + \sum_{j=1}^{4} \beta_j X_j + \gamma (X_1 X_2) + \epsilon
 $$
 
 The oracle model includes only the true predictors and the true interaction term.  
-It represents the best possible linear model under correct specification and serves as a benchmark for evaluating model recovery of the latent signal.
+It represents a correctly specified linear model and serves as a benchmark for evaluating how well models recover the latent signal under measurement error.
 
 ------------------------------------------------------------------------
 
-### XGBoost (cross-validated)
+### XGBoost
 
 $$
 Y = f(X) + \epsilon
@@ -425,9 +441,14 @@ Model complexity is controlled via cross-validation, where hyperparameters are s
 
 Cross-validation is performed within the training data only, ensuring that test performance remains strictly out-of-sample.
 
+XGBoost models are trained using k-fold cross-validation within the training data to select hyperparameters. A grid search is performed over key parameters (e.g., learning rate, tree depth, and minimum child weight), and the final model is trained using the configuration that minimizes cross-validated RMSE.
+This ensures that model flexibility is not driven by arbitrary parameter choices, but is systematically tuned based on predictive performance.
+
 ------------------------------------------------------------------------
 
 ## Evaluation
+
+All evaluation metrics are computed on the held-out test set, ensuring that results reflect out-of-sample predictive performance.
 
 ### RMSE
 
@@ -460,12 +481,19 @@ These quantities measure whether flexible models provide gains beyond what is ex
 
 ## Key constraint
 
-Predictive performance is fundamentally limited by measurement error in the outcome.  
-The maximum observable predictive accuracy is bounded by the reliability of the outcome and the strength of the latent signal:
+Predictive performance is fundamentally limited by measurement error in the outcome. Because the observed outcome \( Y \) contains random measurement error in addition to the true latent variable \( Y^* \), not all variance in \( Y \) is predictable.
+
+Under classical additive measurement error assumptions, the proportion of variance in the observed outcome that can be explained by any model is bounded by the reliability of the outcome:
 
 $$
 R^2_{\mathrm{observed}} \leq \rho_Y \cdot R^2_{\mathrm{latent}}
 $$
+
+where \( \rho_Y \) denotes outcome reliability and \( R^2_{\mathrm{latent}} \) represents the proportion of variance in the latent outcome \( Y^* \) explained by the true signal.
+
+This relationship implies that predictive performance is constrained not only by model capacity, but also by the amount of true variance present in the observed data.
+
+Importantly, this bound represents a theoretical maximum under ideal conditions; in finite samples and under model misspecification, observed performance may fall below this limit.
 
 No model can recover variance that is not present in the observed outcome.
 
@@ -480,3 +508,10 @@ The simulation separates:
 -   measurement error
 
 to evaluate when flexible models provide meaningful gains and when performance is limited by data quality.
+
+------------------------------------------------------------------------
+
+## Notes on interpretation
+
+The simulation assumes continuous, normally distributed variables and does not include features such as missing data, non-normality, or complex dependence structures beyond controlled interactions. As such, results reflect idealized conditions and should be interpreted as illustrating fundamental measurement constraints rather than fully realistic applied scenarios.
+

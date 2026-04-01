@@ -8,27 +8,6 @@ The design explicitly separates:
 -   random noise
 -   measurement error in observed variables
 
-This allows us to evaluate whether gains from flexible models reflect genuine structure or are limited by data quality.
-
-------------------------------------------------------------------------
-
-## Why This Matters
-
-In the social and behavioural sciences, variables such as intelligence, motivation, or well-being are latent and measured with error. As a result, predictive models operate on imperfect representations of the underlying constructs.
-
-Classical measurement theory shows that measurement error attenuates relationships and limits predictive performance. In particular, outcome reliability imposes an upper bound on the maximum achievable $R^2$.
-
-This has direct implications for model comparison. Improvements in predictive performance are often interpreted as evidence that flexible models capture nonlinear or interaction effects. However, such gains may instead depend on measurement quality.
-
-This simulation tests that distinction by manipulating:
-
--   signal strength ($R^2$)
--   predictor reliability ($\rho_X$)
--   outcome reliability ($\rho_Y$)
--   signal composition (linear vs. interaction effects)
-
-Model performance is evaluated relative to a regression baseline to determine whether gains from flexible models persist under measurement error.
-
 ------------------------------------------------------------------------
 
 ## Data-Generating Process
@@ -221,6 +200,129 @@ $$
 Models are fitted on $(X, Y)$, while the true data-generating process operates on $(X^{\ast}, Y^{\ast})$.
 
 Because both predictors and outcomes contain measurement error, models estimate attenuated relationships rather than the true signal.
+
+------------------------------------------------------------------------
+
+## Simulation Workflow
+
+### Data generation and evaluation pipeline
+
+For each simulation condition, the following procedure is applied:
+
+```
+FULL SIMULATED DATASET (N = 1000)
+│
+├── Split into:
+│   ├── TRAIN SET (70%)
+│   │   │
+│   │   ├── Cross-validation (k-fold)
+│   │   │   ├── Split training data into k folds
+│   │   │   ├── Loop:
+│   │   │   │   ├── Train on k-1 folds
+│   │   │   │   └── Validate on remaining fold
+│   │   │   └── Select best hyperparameters
+│   │   │
+│   │   └── Fit final model on full TRAIN SET
+│   │
+│   └── TEST SET (30%)
+│       │
+│       └── Evaluate final model:
+│           ├── RMSE_test
+│           └── R²_test
+│
+└── Store results (per replication)
+```
+
+This entire process is repeated multiple times (e.g., 100–200 replications) for each simulation condition.
+
+Results are then aggregated across replications:
+
+- mean RMSE  
+- mean R²  
+- mean ΔR² (relative to OLS baseline)  
+- mean ΔRMSE  
+
+---
+
+## Role of Each Dataset
+
+### 1. Full simulated dataset
+
+- Generated from the data-generating process (DGP)  
+- Contains observed predictors \(X\) and outcome \(Y\)  
+- Used only for splitting into training and test sets  
+
+---
+
+### 2. Training set (70%)
+
+Purpose: **model estimation**
+
+Used for:
+
+- fitting models  
+- performing cross-validation  
+- tuning hyperparameters  
+
+---
+
+### 3. Cross-validation folds (within training set)
+
+Purpose: **model selection**
+
+Used for:
+
+- selecting XGBoost hyperparameters  
+- reducing overfitting  
+
+Important:  
+This is still **in-sample evaluation**
+
+---
+
+### 4. Test set (30%)
+
+Purpose: **final performance evaluation**
+
+Used for:
+
+- RMSE  
+- \(R^2\)  
+
+Important:  
+This data is **never used during training or cross-validation**
+
+---
+
+### 5. Aggregated results
+
+Purpose: **final inference**
+
+Used for:
+
+- summarizing performance across replications  
+- producing plots and tables  
+- comparing models  
+
+---
+
+## Evaluation Structure
+
+| Stage              | Dataset        | Purpose                     | Metrics         |
+|-------------------|--------------|----------------------------|----------------|
+| Simulation        | Full data     | Generate \(X, Y\)          | —              |
+| Training          | Train set     | Fit models                 | —              |
+| Model selection   | CV folds      | Tune hyperparameters       | CV RMSE        |
+| Final model       | Train set     | Refit model                | —              |
+| Evaluation        | Test set      | Predict outcomes           | RMSE, \(R^2\)  |
+| Aggregation       | Across reps   | Summarize performance      | Mean metrics   |
+
+---
+
+## Key Principle
+
+The test set is strictly held out and used only once per replication.  
+This ensures that all reported performance metrics reflect **out-of-sample predictive accuracy**.
 
 ------------------------------------------------------------------------
 

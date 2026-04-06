@@ -1,0 +1,4 @@
+Run directory: runs/run_2026-04-01_23-52_nrep200
+Rows in replication data: 32400
+Unique conditions: 162
+Diagnostics saved: 2026-04-02 12:00:40

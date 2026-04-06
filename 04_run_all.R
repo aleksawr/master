@@ -154,6 +154,8 @@ results_df <- do.call(rbind, results_list)
 cat("Rows:", nrow(results_df), "\n")
 cat("Unique conditions:", length(unique(results_df$condition_id)), "\n")
 
+run_label <- "run_2026-04-01_23-52_nrep200"
+
 dir.create(file.path("runs", run_label), recursive = TRUE, showWarnings = FALSE)
 
 write.csv(

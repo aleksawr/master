@@ -7,10 +7,17 @@
 rm(list = ls(all.names = TRUE))
 source("run_config.R")
 
-results_df <- read.csv(file.path(run_dir, "results_replication_level.csv"))
+infile <- file.path(run_dir, "results_replication_level.csv")
 
-str(results_df)
-head(results_df)
+if (!file.exists(infile)) {
+  stop("Could not find results file: ", infile)
+}
+
+results_df <- read.csv(infile)
+
+cat("Loaded replication-level results from:\n", infile, "\n")
+cat("Rows:", nrow(results_df), "\n")
+cat("Unique conditions:", length(unique(results_df$condition_id)), "\n")
 
 # -----------------------------
 # 1. Means within condition
@@ -183,18 +190,36 @@ agg_df <- merge(
   by = c("condition_id", "latent_R2", "rho_X", "rho_Y", "comp_linear", "rho_betweenX")
 )
 
+# explicit base-R ordering
+agg_df <- agg_df[order(
+  agg_df$comp_linear,
+  agg_df$rho_betweenX,
+  agg_df$rho_Y,
+  agg_df$rho_X,
+  agg_df$latent_R2,
+  agg_df$condition_id
+), ]
+
 # -----------------------------
 # 4. Save summary
 # -----------------------------
+outfile <- file.path(run_dir, "results_condition_summary.csv")
+
 write.csv(
   agg_df,
-  file.path(run_dir, "results_condition_summary.csv"),
+  outfile,
   row.names = FALSE
 )
 
-cat("Expected summary rows:", length(unique(results_df$condition_id)), "\n")
-cat("Observed summary rows:", nrow(agg_df), "\n")
-cat("Finished. Saved results_condition_summary.csv\n")
+expected_rows <- length(unique(results_df$condition_id))
+observed_rows <- nrow(agg_df)
 
+cat("Expected summary rows:", expected_rows, "\n")
+cat("Observed summary rows:", observed_rows, "\n")
+
+if (observed_rows != expected_rows) {
+  stop("Mismatch between expected and observed summary rows.")
+}
+
+cat("Finished. Saved results_condition_summary.csv to:\n", outfile, "\n")
 print(head(agg_df))
-

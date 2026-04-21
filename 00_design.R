@@ -32,7 +32,7 @@ rho_Y_levels <- c(0.60, 0.80, 1.00)
 comp_linear_levels <- c(0.80, 0.50, 0.20)
 
 # New: latent predictor intercorrelation
-rho_betweenX_levels <- c(0.00, 0.30)
+rho_betweenX_levels <- c(0.00, 0.50)
 
 cond_grid <- expand.grid(
   latent_R2 = latent_R2_levels,

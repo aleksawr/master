@@ -19,7 +19,7 @@ label_rhoY <- function(x) {
 }
 
 label_latentR2 <- function(x) {
-  paste0("latent R² = ", formatC(as.numeric(x), format = "f", digits = 2))
+  paste0("latent R^2 = ", formatC(as.numeric(x), format = "f", digits = 2))
 }
 
 label_rhoB <- function(x) {
@@ -38,22 +38,21 @@ label_rhoX_axis <- function(x) {
 # Color palettes
 # -----------------------------
 raw_model_cols <- c(
-  "Baseline OLS" = "#6F8FAF",   # stronger muted blue-grey
-  "Oracle OLS"   = "#C97C5D",   # stronger muted terracotta
-  "XGBoost"      = "#B8B8B8"    # lighter soft sage
+  "Baseline OLS" = "#E6C98F",   # light sand
+  "Aligned OLS"  = "#C98C5A",   # medium warm brown-orange
+  "Oracle OLS"   = "#8C4C2E",   # dark brown
+  "XGBoost"      = "#4F6D8A"    # muted blue
 )
 
 delta_cols <- c(
-  "XGB - Baseline" = "#6F8FAF",
-  "XGB - Oracle"   = "#C97C5D"
+  "XGB - Baseline" = "#E6C98F",
+  "XGB - Aligned"  = "#C98C5A",
+  "XGB - Oracle"   = "#8C4C2E"
 )
 
 box_outline_col <- "#4A4A4A"
 
-# Heatmap palette:
-# low = XGB rarely wins
-# mid = around chance
-# high = XGB often wins
+# Heatmap palette if needed later
 win_heat_cols <- c(
   low  = "#2166AC",
   mid  = "white",

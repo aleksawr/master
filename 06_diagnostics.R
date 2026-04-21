@@ -1,22 +1,35 @@
 # ============================================================
 # 06_diagnostics.R
 # Purpose:
-#   Diagnostics for performance and realized condition values
-#   for one selected run
+#   Diagnostics for realized design values and broad performance
+#   patterns for one selected run
 # ============================================================
 
 rm(list = ls(all.names = TRUE))
 source("run_config.R")
 
-results_df <- read.csv(file.path(run_dir, "results_replication_level.csv"))
+infile <- file.path(run_dir, "results_replication_level.csv")
+
+if (!file.exists(infile)) {
+  stop("Could not find results file: ", infile)
+}
+
+results_df <- read.csv(infile)
 
 diag_dir <- file.path(run_dir, "diagnostic_tables")
-dir.create(diag_dir, showWarnings = FALSE)
+dir.create(diag_dir, showWarnings = FALSE, recursive = TRUE)
 
 required_cols <- c(
+  "condition_id",
   "latent_R2", "rho_X", "rho_Y", "comp_linear", "rho_betweenX",
-  "realized_latent_R2", "realized_rho_X", "realized_rho_Y",
-  "r2_ols_base", "r2_ols_true_interaction", "r2_ols_oracle", "r2_xgb"
+  "realized_latent_R2", "realized_rho_X", "realized_rho_X_min",
+  "realized_rho_X_max", "realized_rho_Y", "realized_linear_share",
+  "realized_interaction_share", "realized_lin_int_cor",
+  "realized_mean_cor_X",
+  "r2_ols_base", "r2_ols_true_interaction", "r2_ols_oracle", "r2_xgb",
+  "rmse_ols_base", "rmse_ols_true_interaction", "rmse_ols_oracle", "rmse_xgb",
+  "delta_r2_true_vs_base", "delta_r2_oracle_vs_base", "delta_r2_oracle_vs_true",
+  "delta_r2_xgb_vs_base", "delta_r2_xgb_vs_true", "delta_r2_xgb_vs_oracle"
 )
 
 missing_cols <- setdiff(required_cols, names(results_df))
@@ -73,25 +86,29 @@ print(tab_rhoBetweenX)
 # 2. Performance summaries
 # ------------------------------------------------------------
 perf_by_latentR2 <- aggregate(
-  cbind(r2_ols_base, r2_ols_true_interaction, r2_ols_oracle, r2_xgb) ~ latent_R2,
+  cbind(r2_ols_base, r2_ols_true_interaction, r2_ols_oracle, r2_xgb,
+        rmse_ols_base, rmse_ols_true_interaction, rmse_ols_oracle, rmse_xgb) ~ latent_R2,
   data = results_df,
   mean
 )
 
 perf_by_rhoX <- aggregate(
-  cbind(r2_ols_base, r2_ols_true_interaction, r2_ols_oracle, r2_xgb) ~ rho_X,
+  cbind(r2_ols_base, r2_ols_true_interaction, r2_ols_oracle, r2_xgb,
+        rmse_ols_base, rmse_ols_true_interaction, rmse_ols_oracle, rmse_xgb) ~ rho_X,
   data = results_df,
   mean
 )
 
 perf_by_rhoY <- aggregate(
-  cbind(r2_ols_base, r2_ols_true_interaction, r2_ols_oracle, r2_xgb) ~ rho_Y,
+  cbind(r2_ols_base, r2_ols_true_interaction, r2_ols_oracle, r2_xgb,
+        rmse_ols_base, rmse_ols_true_interaction, rmse_ols_oracle, rmse_xgb) ~ rho_Y,
   data = results_df,
   mean
 )
 
 perf_by_rhoBetweenX <- aggregate(
-  cbind(r2_ols_base, r2_ols_true_interaction, r2_ols_oracle, r2_xgb) ~ rho_betweenX,
+  cbind(r2_ols_base, r2_ols_true_interaction, r2_ols_oracle, r2_xgb,
+        rmse_ols_base, rmse_ols_true_interaction, rmse_ols_oracle, rmse_xgb) ~ rho_betweenX,
   data = results_df,
   mean
 )
@@ -154,6 +171,12 @@ if (nrow(perfect_df) > 0) {
     mean
   )
   
+  recovery_tab <- recovery_tab[order(
+    recovery_tab$comp_linear,
+    recovery_tab$rho_betweenX,
+    recovery_tab$latent_R2
+  ), ]
+  
   recovery_tab$gap_true_model_vs_realized_latent <-
     recovery_tab$realized_latent_R2 - recovery_tab$r2_ols_true_interaction
   
@@ -179,7 +202,35 @@ if (nrow(perfect_df) > 0) {
 }
 
 # ------------------------------------------------------------
-# 4. Save diagnostic tables
+# 4. Condition-level realized checks
+# ------------------------------------------------------------
+condition_realized_tab <- aggregate(
+  cbind(
+    realized_latent_R2,
+    realized_rho_X,
+    realized_rho_X_min,
+    realized_rho_X_max,
+    realized_rho_Y,
+    realized_linear_share,
+    realized_interaction_share,
+    realized_lin_int_cor,
+    realized_mean_cor_X
+  ) ~ condition_id + latent_R2 + rho_X + rho_Y + comp_linear + rho_betweenX,
+  data = results_df,
+  mean
+)
+
+condition_realized_tab <- condition_realized_tab[order(
+  condition_realized_tab$comp_linear,
+  condition_realized_tab$rho_betweenX,
+  condition_realized_tab$rho_Y,
+  condition_realized_tab$rho_X,
+  condition_realized_tab$latent_R2,
+  condition_realized_tab$condition_id
+), ]
+
+# ------------------------------------------------------------
+# 5. Save diagnostic tables
 # ------------------------------------------------------------
 write.csv(tab_latentR2,
           file.path(diag_dir, "target_vs_realized_latent_R2.csv"),
@@ -207,6 +258,10 @@ write.csv(tab_linint_cor,
 
 write.csv(tab_rhoBetweenX,
           file.path(diag_dir, "target_vs_realized_predictor_correlation.csv"),
+          row.names = FALSE)
+
+write.csv(condition_realized_tab,
+          file.path(diag_dir, "condition_level_realized_checks.csv"),
           row.names = FALSE)
 
 write.csv(perf_by_latentR2,

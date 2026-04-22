@@ -1,5 +1,5 @@
 # ============================================================
-# 07_plots.R
+# 09_plots.R
 # Purpose:
 #   Clean raw and delta boxplots for replication-level results
 #   Layout:
@@ -330,3 +330,304 @@ for (cl in comp_levels) {
 cat("Finished. Boxplots saved to:\n")
 cat(plot_dir, "\n")
 
+
+
+
+
+
+
+# ============================================================
+# 8. Add-on: selected-condition plots
+# Purpose:
+#   Create a small set of main-text plots from the manually
+#   selected illustrative conditions
+# ============================================================
+
+agg_df <- read.csv(file.path(run_dir, "results_condition_summary.csv"))
+
+selected_file <- file.path(run_dir, "selected_conditions", "main_text_selected_conditions.csv")
+
+if (file.exists(selected_file)) {
+  
+  main_conditions <- read.csv(selected_file)
+  
+  pub_plot_dir <- file.path(run_dir, "publication_plots")
+  dir.create(pub_plot_dir, showWarnings = FALSE, recursive = TRUE)
+  
+  # -----------------------------
+  # A. Replication-level R2 boxplots for selected conditions
+  # -----------------------------
+  selected_replications <- results_df %>%
+    inner_join(
+      main_conditions,
+      by = c("latent_R2", "rho_X", "rho_Y", "comp_linear", "rho_betweenX")
+    )
+  
+  selected_raw_r2 <- bind_rows(
+    selected_replications %>%
+      transmute(label, model = "Baseline OLS", value = r2_ols_base),
+    selected_replications %>%
+      transmute(label, model = "Aligned OLS", value = r2_ols_true_interaction),
+    selected_replications %>%
+      transmute(label, model = "Oracle OLS", value = r2_ols_oracle),
+    selected_replications %>%
+      transmute(label, model = "XGBoost", value = r2_xgb)
+  ) %>%
+    mutate(
+      model = factor(model,
+                     levels = c("Baseline OLS", "Aligned OLS", "Oracle OLS", "XGBoost")),
+      label = factor(label, levels = main_conditions$label)
+    )
+  
+  p_selected_box <- ggplot(
+    selected_raw_r2,
+    aes(x = model, y = value, fill = model)
+  ) +
+    geom_boxplot(
+      width = 0.70,
+      outlier.shape = NA,
+      linewidth = 0.30,
+      colour = box_outline_col
+    ) +
+    facet_wrap(~ label, nrow = 1) +
+    scale_fill_manual(values = raw_model_cols, drop = FALSE) +
+    coord_cartesian(ylim = ylims$R2) +
+    labs(
+      title = "Illustrative selected conditions: replication-level test-set R^2",
+      x = NULL,
+      y = "Test-set R^2"
+    ) +
+    theme_thesis() +
+    theme(
+      axis.text.x = element_text(angle = 20, hjust = 1),
+      legend.position = "none"
+    )
+  
+  ggsave(
+    filename = file.path(pub_plot_dir, "selected_conditions_boxplot_R2.png"),
+    plot = p_selected_box,
+    width = 12.5,
+    height = 4.8,
+    dpi = 320
+  )
+  
+  # -----------------------------
+  # B. Mean R2 line plot for selected conditions
+  # -----------------------------
+  selected_means <- agg_df %>%
+    inner_join(
+      main_conditions,
+      by = c("latent_R2", "rho_X", "rho_Y", "comp_linear", "rho_betweenX")
+    ) %>%
+    transmute(
+      label,
+      `Baseline OLS` = mean_r2_ols_base,
+      `Aligned OLS`  = mean_r2_ols_true_interaction,
+      `Oracle OLS`   = mean_r2_ols_oracle,
+      `XGBoost`      = mean_r2_xgb
+    ) %>%
+    tidyr::pivot_longer(
+      cols = c(`Baseline OLS`, `Aligned OLS`, `Oracle OLS`, `XGBoost`),
+      names_to = "model",
+      values_to = "mean_r2"
+    ) %>%
+    mutate(
+      model = factor(model,
+                     levels = c("Baseline OLS", "Aligned OLS", "Oracle OLS", "XGBoost")),
+      label = factor(label, levels = main_conditions$label)
+    )
+  
+  p_selected_mean <- ggplot(
+    selected_means,
+    aes(x = model, y = mean_r2, group = 1)
+  ) +
+    geom_line(linewidth = 0.7) +
+    geom_point(size = 2.8) +
+    facet_wrap(~ label, nrow = 1) +
+    coord_cartesian(ylim = ylims$R2) +
+    labs(
+      title = "Illustrative selected conditions: mean test-set R^2",
+      x = NULL,
+      y = "Mean test-set R^2"
+    ) +
+    theme_thesis() +
+    theme(
+      axis.text.x = element_text(angle = 20, hjust = 1),
+      legend.position = "none"
+    )
+  
+  ggsave(
+    filename = file.path(pub_plot_dir, "selected_conditions_mean_R2.png"),
+    plot = p_selected_mean,
+    width = 12.5,
+    height = 4.8,
+    dpi = 320
+  )
+  
+  cat("\nPublication selected-condition plots saved to:\n")
+  cat(pub_plot_dir, "\n")
+  
+} else {
+  cat("\nSkipping selected-condition publication plots.\n")
+  cat("File not found:\n")
+  cat(selected_file, "\n")
+}
+
+
+
+
+
+
+
+
+##############################################################
+
+
+# ============================================================
+# 8. Add-on: main-text selected-condition boxplots only
+# Purpose:
+#   Create only the small set of publication-ready R2 boxplots
+#   for manually selected main-text conditions
+# ============================================================
+
+selected_file <- file.path(run_dir, "selected_conditions", "main_text_selected_conditions.csv")
+
+if (file.exists(selected_file)) {
+  
+  pub_plot_dir <- file.path(run_dir, "publication_plots")
+  dir.create(pub_plot_dir, showWarnings = FALSE, recursive = TRUE)
+  
+  main_conditions <- read.csv(selected_file, stringsAsFactors = FALSE)
+  
+  # -----------------------------
+  # A. Clean types
+  # -----------------------------
+  cond_cols <- c("latent_R2", "rho_X", "rho_Y", "comp_linear", "rho_betweenX")
+  
+  main_conditions[cond_cols] <- lapply(main_conditions[cond_cols], as.numeric)
+  results_df[cond_cols]      <- lapply(results_df[cond_cols], as.numeric)
+  
+  main_conditions$panel_order <- as.integer(main_conditions$panel_order)
+  main_conditions$facet_nrow  <- as.integer(main_conditions$facet_nrow)
+  
+  # -----------------------------
+  # B. Join selected conditions to replication-level data
+  # -----------------------------
+  selected_replications <- results_df %>%
+    inner_join(
+      main_conditions,
+      by = c("latent_R2", "rho_X", "rho_Y", "comp_linear", "rho_betweenX")
+    )
+  
+  # -----------------------------
+  # C. Reshape to long format for R2 only
+  # -----------------------------
+  selected_raw_r2 <- bind_rows(
+    selected_replications %>%
+      transmute(
+        figure_id, figure_title, panel_order, panel_label, facet_nrow,
+        model = "Baseline OLS",
+        value = r2_ols_base
+      ),
+    selected_replications %>%
+      transmute(
+        figure_id, figure_title, panel_order, panel_label, facet_nrow,
+        model = "Aligned OLS",
+        value = r2_ols_true_interaction
+      ),
+    selected_replications %>%
+      transmute(
+        figure_id, figure_title, panel_order, panel_label, facet_nrow,
+        model = "Oracle OLS",
+        value = r2_ols_oracle
+      ),
+    selected_replications %>%
+      transmute(
+        figure_id, figure_title, panel_order, panel_label, facet_nrow,
+        model = "XGBoost",
+        value = r2_xgb
+      )
+  ) %>%
+    mutate(
+      model = factor(
+        model,
+        levels = c("Baseline OLS", "Aligned OLS", "Oracle OLS", "XGBoost")
+      )
+    )
+  
+  # -----------------------------
+  # D. Plot helper
+  # -----------------------------
+  make_selected_boxplot <- function(df_sub, out_file) {
+    
+    panel_levels <- df_sub %>%
+      distinct(panel_order, panel_label) %>%
+      arrange(panel_order) %>%
+      pull(panel_label)
+    
+    df_sub <- df_sub %>%
+      mutate(panel_label = factor(panel_label, levels = panel_levels))
+    
+    figure_title <- unique(df_sub$figure_title)
+    facet_nrow   <- unique(df_sub$facet_nrow)
+    
+    if (length(figure_title) != 1) stop("Each figure_id must have exactly one figure_title.")
+    if (length(facet_nrow) != 1)   stop("Each figure_id must have exactly one facet_nrow.")
+    
+    p <- ggplot(
+      df_sub,
+      aes(x = model, y = value, fill = model)
+    ) +
+      geom_boxplot(
+        width = 0.70,
+        outlier.shape = NA,
+        linewidth = 0.30,
+        colour = box_outline_col
+      ) +
+      facet_wrap(~ panel_label, nrow = facet_nrow) +
+      scale_fill_manual(values = raw_model_cols, drop = FALSE) +
+      coord_cartesian(ylim = ylims$R2) +
+      labs(
+        title = figure_title,
+        x = NULL,
+        y = "Test-set R^2"
+      ) +
+      theme_thesis() +
+      theme(
+        axis.text.x = element_text(angle = 20, hjust = 1),
+        legend.position = "none"
+      )
+    
+    ggsave(
+      filename = file.path(pub_plot_dir, out_file),
+      plot = p,
+      width = 12.5,
+      height = ifelse(facet_nrow == 2, 7.8, 4.8),
+      dpi = 320
+    )
+  }
+  
+  # -----------------------------
+  # E. Make one file per figure_id
+  # -----------------------------
+  figure_ids <- unique(selected_raw_r2$figure_id)
+  
+  for (fid in figure_ids) {
+    
+    df_fig <- selected_raw_r2 %>%
+      filter(figure_id == fid)
+    
+    make_selected_boxplot(
+      df_sub = df_fig,
+      out_file = paste0("main_text_", fid, "_R2_boxplot.png")
+    )
+  }
+  
+  cat("\nSelected main-text R2 boxplots saved to:\n")
+  cat(pub_plot_dir, "\n")
+  
+} else {
+  cat("\nSkipping selected-condition publication plots.\n")
+  cat("File not found:\n")
+  cat(selected_file, "\n")
+}

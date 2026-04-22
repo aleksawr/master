@@ -113,7 +113,7 @@ benchmark_table <- subset(
     rho_X %in% c(0.6, 1.0) &
     rho_Y %in% c(0.6, 1.0) &
     comp_linear %in% c(0.2, 0.8) &
-    rho_betweenX %in% c(0.0, 0.3)
+    rho_betweenX %in% c(0.0, 0.5)
 )
 
 benchmark_table <- benchmark_table[, c(
@@ -137,3 +137,124 @@ write.csv(benchmark_table,
 cat("Finished. Tables saved to:\n")
 
 cat(table_dir, "\n")
+
+
+
+
+# ============================================================
+# 5. Publication add-on tables
+# Purpose:
+#   Create thesis-facing tables without changing diagnostic tables
+# ============================================================
+
+pub_table_dir <- file.path(run_dir, "publication_tables")
+dir.create(pub_table_dir, showWarnings = FALSE, recursive = TRUE)
+
+# -----------------------------
+# A. Compact implementation table
+# -----------------------------
+implementation_table <- bind_rows(
+  tab_latentR2 %>% mutate(design_factor = "latent_R2",
+                          target = latent_R2,
+                          realized = mean_realized_latent_R2) %>%
+    select(design_factor, target, realized),
+  
+  tab_rhoX %>% mutate(design_factor = "rho_X",
+                      target = rho_X,
+                      realized = mean_realized_rho_X) %>%
+    select(design_factor, target, realized),
+  
+  tab_rhoY %>% mutate(design_factor = "rho_Y",
+                      target = rho_Y,
+                      realized = mean_realized_rho_Y) %>%
+    select(design_factor, target, realized),
+  
+  tab_comp %>% mutate(design_factor = "comp_linear",
+                      target = comp_linear,
+                      realized = mean_realized_linear_share) %>%
+    select(design_factor, target, realized),
+  
+  tab_rhoB %>% mutate(design_factor = "rho_betweenX",
+                      target = rho_betweenX,
+                      realized = mean_realized_mean_cor_X) %>%
+    select(design_factor, target, realized)
+)
+
+write.csv(
+  implementation_table,
+  file.path(pub_table_dir, "table_implementation_check_compact.csv"),
+  row.names = FALSE
+)
+
+# -----------------------------
+# B. Full appendix contrast table
+# -----------------------------
+appendix_contrast_table <- agg_df %>%
+  transmute(
+    condition_id,
+    latent_R2, rho_X, rho_Y, comp_linear, rho_betweenX,
+    
+    mean_r2_base    = mean_r2_ols_base,
+    mean_r2_aligned = mean_r2_ols_true_interaction,
+    mean_r2_oracle  = mean_r2_ols_oracle,
+    mean_r2_xgb     = mean_r2_xgb,
+    
+    mean_rmse_base    = mean_rmse_ols_base,
+    mean_rmse_aligned = mean_rmse_ols_true_interaction,
+    mean_rmse_oracle  = mean_rmse_ols_oracle,
+    mean_rmse_xgb     = mean_rmse_xgb,
+    
+    delta_r2_aligned_vs_base   = mean_r2_ols_true_interaction - mean_r2_ols_base,
+    delta_r2_oracle_vs_aligned = mean_r2_ols_oracle - mean_r2_ols_true_interaction,
+    delta_r2_oracle_vs_base    = mean_r2_ols_oracle - mean_r2_ols_base,
+    delta_r2_xgb_vs_base       = mean_r2_xgb - mean_r2_ols_base,
+    delta_r2_xgb_vs_aligned    = mean_r2_xgb - mean_r2_ols_true_interaction,
+    delta_r2_xgb_vs_oracle     = mean_r2_xgb - mean_r2_ols_oracle
+  ) %>%
+  arrange(comp_linear, rho_betweenX, rho_Y, rho_X, latent_R2)
+
+write.csv(
+  appendix_contrast_table,
+  file.path(pub_table_dir, "appendix_full_condition_contrast_table.csv"),
+  row.names = FALSE
+)
+
+# -----------------------------
+# C. Main-text selected-condition table
+# -----------------------------
+selected_file <- file.path(run_dir, "selected_conditions", "main_text_selected_conditions.csv")
+
+if (file.exists(selected_file)) {
+  
+  main_conditions <- read.csv(selected_file)
+  
+  main_text_table <- main_conditions %>%
+    left_join(
+      appendix_contrast_table,
+      by = c("latent_R2", "rho_X", "rho_Y", "comp_linear", "rho_betweenX")
+    ) %>%
+    select(
+      label, latent_R2, rho_X, rho_Y, comp_linear, rho_betweenX,
+      mean_r2_base, mean_r2_aligned, mean_r2_oracle, mean_r2_xgb,
+      delta_r2_aligned_vs_base,
+      delta_r2_oracle_vs_aligned,
+      delta_r2_oracle_vs_base,
+      delta_r2_xgb_vs_base,
+      delta_r2_xgb_vs_aligned,
+      delta_r2_xgb_vs_oracle
+    )
+  
+  write.csv(
+    main_text_table,
+    file.path(pub_table_dir, "table_selected_conditions_main_text.csv"),
+    row.names = FALSE
+  )
+  
+  cat("\nPublication tables saved to:\n")
+  cat(pub_table_dir, "\n")
+  
+} else {
+  cat("\nSkipping selected-condition main-text table.\n")
+  cat("File not found:\n")
+  cat(selected_file, "\n")
+}

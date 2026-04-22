@@ -39,9 +39,9 @@ dir.create(plot_dir, showWarnings = FALSE, recursive = TRUE)
 # 2. Heatmap colors
 #    Stronger than boxplot colors on purpose
 # -----------------------------
-baseline_heat_col <- "#3E73B8"  # comparator side for Baseline
-oracle_heat_col   <- "#C4412F"  # comparator side for Oracle
-xgb_heat_col      <- "#3F9B83"  # XGB side everywhere
+baseline_heat_col <- "#3B6FB6"
+oracle_heat_col   <- "#B22222"
+xgb_heat_col      <- "#2E8B57"
 mid_heat_col      <- "white"
 
 # -----------------------------
@@ -169,7 +169,9 @@ theme_heatmap_overview <- function(base_size = 12) {
 #      positive = XGB dominates
 # -----------------------------
 make_dominance_scale <- function(contrast_name) {
+  
   if (contrast_name == "XGB - Baseline") {
+    
     scale_fill_gradient2(
       low = baseline_heat_col,
       mid = mid_heat_col,
@@ -177,9 +179,11 @@ make_dominance_scale <- function(contrast_name) {
       midpoint = 0,
       limits = c(-1, 1),
       breaks = c(-1, 0, 1),
-      labels = c("Comparator dominates", "Equal", "XGB dominates")
+      labels = c("Baseline dominates", "Equal", "XGB dominates")
     )
-  } else {
+    
+  } else if (contrast_name == "XGB - Oracle") {
+    
     scale_fill_gradient2(
       low = oracle_heat_col,
       mid = mid_heat_col,
@@ -187,8 +191,12 @@ make_dominance_scale <- function(contrast_name) {
       midpoint = 0,
       limits = c(-1, 1),
       breaks = c(-1, 0, 1),
-      labels = c("Comparator dominates", "Equal", "XGB dominates")
+      labels = c("Oracle dominates", "Equal", "XGB dominates")
     )
+    
+  } else {
+    
+    stop("Unknown contrast_name: ", contrast_name)
   }
 }
 
@@ -231,7 +239,7 @@ plot_dominance_heatmap_overview <- function(df_sub,
       subtitle = label_rhoB(rhoB_value),
       x = expression(rho[X]),
       y = expression(rho[Y]),
-      fill = "Win-frequency dominance"
+      fill = "Dominance"
     ) +
     theme_heatmap_overview()
   

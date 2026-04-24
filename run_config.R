@@ -4,7 +4,9 @@
 #   Shared run paths for aggregation, diagnostics, and plots
 # ============================================================
 
-run_label <- "run_2026-04-20_23-32_nrep200"
+run_label <- "run_2026-04-24_13-32_nrep200"
+
+run_seed <- 20260424
 
 run_dir <- file.path("runs", run_label)
 

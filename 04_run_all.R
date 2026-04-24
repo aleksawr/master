@@ -29,7 +29,7 @@ run_one_job <- function(this_job, cond_grid, sim_design) {
   
   this_cond <- cond_grid[i, ]
   
-  set.seed(100000 + i * 1000 + r)
+  set.seed(run_seed + i * 1000 + r)
   
   sim_out <- generate_dataset(
     N = sim_design$N,
@@ -91,7 +91,7 @@ run_one_job <- function(this_job, cond_grid, sim_design) {
 }
 
 # Start conservatively
-n_cores <- 2
+n_cores <- 6
 cl <- makeCluster(n_cores)
 
 clusterExport(cl, varlist = c(
@@ -154,7 +154,7 @@ results_df <- do.call(rbind, results_list)
 cat("Rows:", nrow(results_df), "\n")
 cat("Unique conditions:", length(unique(results_df$condition_id)), "\n")
 
-run_label <- "run_2026-04-20_23-32_nrep200"
+run_label <- "run_2026-04-24_13-32_nrep200"
 
 dir.create(file.path("runs", run_label), recursive = TRUE, showWarnings = FALSE)
 

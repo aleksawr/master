@@ -77,7 +77,6 @@ fit_ols_oracle <- function(train_data) {
 # -----------------------------
 fit_xgb <- function(train_data,
                     nfold = 3,
-                    seed = 123,
                     use_1se = TRUE) {
   
   if (!requireNamespace("xgboost", quietly = TRUE)) {

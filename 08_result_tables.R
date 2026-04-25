@@ -5,7 +5,9 @@
 # ============================================================
 
 rm(list = ls(all.names = TRUE))
+
 source("run_config.R")
+library(dplyr)
 
 results_df <- read.csv(file.path(run_dir, "results_replication_level.csv"))
 agg_df <- read.csv(file.path(run_dir, "results_condition_summary.csv"))
@@ -139,8 +141,6 @@ cat("Finished. Tables saved to:\n")
 cat(table_dir, "\n")
 
 
-
-
 # ============================================================
 # 5. Publication add-on tables
 # Purpose:
@@ -220,22 +220,17 @@ write.csv(
 )
 
 # -----------------------------
-# C. Main-text selected-condition table
+# C. Candidate-condition table from ranked selections
 # -----------------------------
-selected_file <- file.path(run_dir, "selected_conditions", "main_text_selected_conditions.csv")
+candidate_file <- file.path(run_dir, "selected_conditions", "candidate_pool_deduplicated.csv")
 
-if (file.exists(selected_file)) {
+if (file.exists(candidate_file)) {
   
-  main_conditions <- read.csv(selected_file)
+  candidate_conditions <- read.csv(candidate_file)
   
-  main_text_table <- main_conditions %>%
-    left_join(
-      appendix_contrast_table,
-      by = c("latent_R2", "rho_X", "rho_Y", "comp_linear", "rho_betweenX")
-    ) %>%
+  contrast_only <- appendix_contrast_table %>%
     select(
-      label, latent_R2, rho_X, rho_Y, comp_linear, rho_betweenX,
-      mean_r2_base, mean_r2_aligned, mean_r2_oracle, mean_r2_xgb,
+      latent_R2, rho_X, rho_Y, comp_linear, rho_betweenX,
       delta_r2_aligned_vs_base,
       delta_r2_oracle_vs_aligned,
       delta_r2_oracle_vs_base,
@@ -244,9 +239,26 @@ if (file.exists(selected_file)) {
       delta_r2_xgb_vs_oracle
     )
   
+  main_text_table <- candidate_conditions %>%
+    left_join(
+      contrast_only,
+      by = c("latent_R2", "rho_X", "rho_Y", "comp_linear", "rho_betweenX")
+    ) %>%
+    select(
+      latent_R2, rho_X, rho_Y, comp_linear, rho_betweenX,
+      mean_r2_base, mean_r2_aligned, mean_r2_oracle, mean_r2_xgb,
+      delta_r2_aligned_vs_base,
+      delta_r2_oracle_vs_aligned,
+      delta_r2_oracle_vs_base,
+      delta_r2_xgb_vs_base,
+      delta_r2_xgb_vs_aligned,
+      delta_r2_xgb_vs_oracle,
+      everything()
+    )
+  
   write.csv(
     main_text_table,
-    file.path(pub_table_dir, "table_selected_conditions_main_text.csv"),
+    file.path(pub_table_dir, "table_candidate_conditions_from_rankings.csv"),
     row.names = FALSE
   )
   
@@ -254,7 +266,7 @@ if (file.exists(selected_file)) {
   cat(pub_table_dir, "\n")
   
 } else {
-  cat("\nSkipping selected-condition main-text table.\n")
+  cat("\nSkipping candidate-condition table.\n")
   cat("File not found:\n")
-  cat(selected_file, "\n")
+  cat(candidate_file, "\n")
 }

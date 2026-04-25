@@ -6,12 +6,15 @@
 
 rm(list = ls(all.names = TRUE))
 
+source("run_config.R")
+
 source("00_design.R")
 source("01_simulation.R")
 source("02_fit_models.R")
 source("03_evaluate.R")
 
 library(parallel)
+
 
 job_grid <- expand.grid(
   condition_row = seq_len(nrow(cond_grid)),
@@ -91,12 +94,12 @@ run_one_job <- function(this_job, cond_grid, sim_design) {
 }
 
 # Start conservatively
-n_cores <- 6
 cl <- makeCluster(n_cores)
 
 clusterExport(cl, varlist = c(
   "cond_grid",
   "sim_design",
+  "run_seed",
   "generate_dataset",
   "generate_X_true",
   "generate_Y_true",
@@ -154,18 +157,23 @@ results_df <- do.call(rbind, results_list)
 cat("Rows:", nrow(results_df), "\n")
 cat("Unique conditions:", length(unique(results_df$condition_id)), "\n")
 
-run_label <- "run_2026-04-24_13-32_nrep200"
-
-dir.create(file.path("runs", run_label), recursive = TRUE, showWarnings = FALSE)
+dir.create(run_dir, recursive = TRUE, showWarnings = FALSE)
 
 write.csv(
   results_df,
-  file.path("runs", run_label, "results_replication_level.csv"),
+  file.path(run_dir, "results_replication_level.csv"),
   row.names = FALSE
 )
 
 cat("Finished. Results saved to:\n")
-cat(file.path("runs", run_label, "results_replication_level.csv"), "\n")
+cat(file.path(run_dir, "results_replication_level.csv"), "\n")
 
-cat("Finished. Results saved to results_replication_level.csv\n")
 print(head(results_df))
+
+source("05_aggregate_results.R")
+source("06_diagnostics.R")
+source("07_select_key_conditions.R")
+source("08_result_tables.R")
+source("09_plots.R")
+# source("10_MCSE.R")
+

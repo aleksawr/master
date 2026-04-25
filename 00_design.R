@@ -6,8 +6,6 @@
 #   sim_design, cond_grid
 # ============================================================
 
-rm(list = ls(all.names = TRUE))
-
 # -----------------------------
 # 1. Core design choices
 # -----------------------------
@@ -15,7 +13,7 @@ N <- 1000
 p <- 20
 n_true <- 4
 train_prop <- 0.70
-n_rep <- 200
+n_rep <- 400
 
 # First 4 predictors have true main effects
 beta <- c(0.6, 0.5, 0.4, 0.3, rep(0, p - n_true))

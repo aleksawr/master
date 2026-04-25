@@ -113,8 +113,6 @@ fit_xgb <- function(train_data,
       nthread = 1
     )
     
-    set.seed(seed)
-    
     cv_fit <- xgboost::xgb.cv(
       params = params,
       data = dtrain,

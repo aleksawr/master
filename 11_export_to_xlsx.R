@@ -12,7 +12,8 @@ library(openxlsx)
 # -----------------------------
 # 1. Set run folder
 # -----------------------------
-run_dir <- file.path("runs", "run_2026-04-25_13-14_nrep400")
+run_dir <- file.path("runs", "run_2026-04-26_00-55_nrep400")
+
 
 diag_dir <- file.path(run_dir, "diagnostic_tables")
 res_dir  <- file.path(run_dir, "result_tables")

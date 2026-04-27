@@ -1,17 +1,16 @@
 # ============================================================
 # 09_plots.R
 # Purpose:
-#   Clean raw and delta boxplots for replication-level results
+#   Raw boxplots for replication-level results
 #   Layout:
 #     rows    = rho_Y
 #     columns = latent_R2
 #     x-axis  = rho_X
 #     separate file per comp_linear x rho_betweenX
 #
-#   Add-on:
-#     If selected_conditions/main_text_selected_conditions.csv exists,
-#     create one simple publication-facing R2 boxplot for those
-#     selected illustrative conditions.
+#   Notes:
+#     - No delta plots
+#     - XGBoost shown first / leftmost
 # ============================================================
 
 rm(list = ls(all.names = TRUE))
@@ -27,7 +26,7 @@ library(ggplot2)
 # -----------------------------
 results_df <- read.csv(file.path(run_dir, "results_replication_level.csv"))
 
-plot_dir <- file.path(run_dir, "boxplots_raw_delta")
+plot_dir <- file.path(run_dir, "boxplots_raw")
 dir.create(plot_dir, showWarnings = FALSE, recursive = TRUE)
 
 # -----------------------------
@@ -103,7 +102,7 @@ raw_long <- bind_rows(
   mutate(
     model = factor(
       model,
-      levels = c("Baseline OLS", "Aligned OLS", "Oracle OLS", "XGBoost")
+      levels = c("XGBoost", "Baseline OLS", "Aligned OLS", "Oracle OLS")
     ),
     rho_X = factor(rho_X, levels = rhoX_levels),
     rho_Y = factor(rho_Y, levels = rhoY_levels),
@@ -112,77 +111,19 @@ raw_long <- bind_rows(
     rho_betweenX = factor(rho_betweenX, levels = rhoB_levels)
   )
 
-# -----------------------------
-# 4. Reshape delta metrics
-# -----------------------------
-delta_long <- bind_rows(
-  results_df %>%
-    transmute(
-      latent_R2, rho_X, rho_Y, comp_linear, rho_betweenX,
-      metric = "delta_R2",
-      contrast = "XGB - Baseline",
-      value = delta_r2_xgb_vs_base
-    ),
-  results_df %>%
-    transmute(
-      latent_R2, rho_X, rho_Y, comp_linear, rho_betweenX,
-      metric = "delta_R2",
-      contrast = "XGB - Aligned",
-      value = delta_r2_xgb_vs_true
-    ),
-  results_df %>%
-    transmute(
-      latent_R2, rho_X, rho_Y, comp_linear, rho_betweenX,
-      metric = "delta_R2",
-      contrast = "XGB - Oracle",
-      value = delta_r2_xgb_vs_oracle
-    ),
-  results_df %>%
-    transmute(
-      latent_R2, rho_X, rho_Y, comp_linear, rho_betweenX,
-      metric = "delta_RMSE",
-      contrast = "XGB - Baseline",
-      value = delta_rmse_xgb_vs_base
-    ),
-  results_df %>%
-    transmute(
-      latent_R2, rho_X, rho_Y, comp_linear, rho_betweenX,
-      metric = "delta_RMSE",
-      contrast = "XGB - Aligned",
-      value = delta_rmse_xgb_vs_true
-    ),
-  results_df %>%
-    transmute(
-      latent_R2, rho_X, rho_Y, comp_linear, rho_betweenX,
-      metric = "delta_RMSE",
-      contrast = "XGB - Oracle",
-      value = delta_rmse_xgb_vs_oracle
-    )
-) %>%
-  mutate(
-    contrast = factor(
-      contrast,
-      levels = c("XGB - Baseline", "XGB - Aligned", "XGB - Oracle")
-    ),
-    rho_X = factor(rho_X, levels = rhoX_levels),
-    rho_Y = factor(rho_Y, levels = rhoY_levels),
-    latent_R2 = factor(latent_R2, levels = latent_levels),
-    comp_linear = factor(comp_linear, levels = comp_levels),
-    rho_betweenX = factor(rho_betweenX, levels = rhoB_levels)
-  )
+# reorder colours to match model order
+raw_model_cols_plot <- raw_model_cols[c("XGBoost", "Baseline OLS", "Aligned OLS", "Oracle OLS")]
 
 # -----------------------------
-# 5. Manual y-limits
+# 4. Manual y-limits
 # -----------------------------
 ylims <- list(
-  R2         = c(-0.10, 0.90),
-  RMSE       = c(0.50, 3.50),
-  delta_R2   = c(-0.40, 0.70),
-  delta_RMSE = c(-0.50, 0.35)
+  R2   = c(-0.10, 0.90),
+  RMSE = c(0.50, 3.50)
 )
 
 # -----------------------------
-# 6. Plot functions
+# 5. Plot function
 # -----------------------------
 plot_raw_metric <- function(df_sub, metric_name, comp_value, rhoB_value,
                             y_limits, file_name, ylab_text) {
@@ -208,57 +149,7 @@ plot_raw_metric <- function(df_sub, metric_name, comp_value, rhoB_value,
         latent_R2 = label_latentR2
       )
     ) +
-    scale_fill_manual(values = raw_model_cols, drop = FALSE) +
-    scale_x_discrete(labels = label_rhoX_axis) +
-    coord_cartesian(ylim = y_limits) +
-    labs(
-      title = ylab_text,
-      subtitle = make_fixed_subtitle(comp_value, rhoB_value),
-      x = expression(rho[X]),
-      y = ylab_text
-    ) +
-    theme_thesis()
-  
-  ggsave(
-    filename = file.path(plot_dir, file_name),
-    plot = p,
-    width = 13.5,
-    height = 10.5,
-    dpi = 320
-  )
-}
-
-plot_delta_metric <- function(df_sub, metric_name, comp_value, rhoB_value,
-                              y_limits, file_name, ylab_text) {
-  
-  p <- ggplot(
-    df_sub %>% filter(metric == metric_name),
-    aes(x = rho_X, y = value, fill = contrast)
-  ) +
-    geom_hline(
-      yintercept = 0,
-      linetype = "dashed",
-      colour = "grey45",
-      linewidth = 0.4
-    ) +
-    geom_boxplot(
-      width = 0.66,
-      position = position_dodge(width = 0.72),
-      outlier.shape = NA,
-      linewidth = 0.30,
-      staplewidth = 0.30,
-      median.linewidth = 0.30,
-      colour = box_outline_col
-    ) +
-    facet_grid(
-      rows = vars(rho_Y),
-      cols = vars(latent_R2),
-      labeller = labeller(
-        rho_Y = label_rhoY,
-        latent_R2 = label_latentR2
-      )
-    ) +
-    scale_fill_manual(values = delta_cols, drop = FALSE) +
+    scale_fill_manual(values = raw_model_cols_plot, drop = FALSE) +
     scale_x_discrete(labels = label_rhoX_axis) +
     coord_cartesian(ylim = y_limits) +
     labs(
@@ -279,15 +170,12 @@ plot_delta_metric <- function(df_sub, metric_name, comp_value, rhoB_value,
 }
 
 # -----------------------------
-# 7. Loop over comp_linear x rho_betweenX
+# 6. Loop over comp_linear x rho_betweenX
 # -----------------------------
 for (cl in comp_levels) {
   for (rb in rhoB_levels) {
     
     raw_sub <- raw_long %>%
-      filter(comp_linear == cl, rho_betweenX == rb)
-    
-    delta_sub <- delta_long %>%
       filter(comp_linear == cl, rho_betweenX == rb)
     
     plot_raw_metric(
@@ -309,28 +197,8 @@ for (cl in comp_levels) {
       file_name = paste0("raw_RMSE_comp", cl, "_rhoB", rb, ".png"),
       ylab_text = "Test-set RMSE"
     )
-    
-    plot_delta_metric(
-      df_sub = delta_sub,
-      metric_name = "delta_R2",
-      comp_value = cl,
-      rhoB_value = rb,
-      y_limits = ylims$delta_R2,
-      file_name = paste0("delta_R2_comp", cl, "_rhoB", rb, ".png"),
-      ylab_text = "Delta R^2"
-    )
-    
-    plot_delta_metric(
-      df_sub = delta_sub,
-      metric_name = "delta_RMSE",
-      comp_value = cl,
-      rhoB_value = rb,
-      y_limits = ylims$delta_RMSE,
-      file_name = paste0("delta_RMSE_comp", cl, "_rhoB", rb, ".png"),
-      ylab_text = "Delta RMSE"
-    )
   }
 }
 
-cat("Finished. Boxplots saved to:\n")
+cat("Finished. Raw boxplots saved to:\n")
 cat(plot_dir, "\n")

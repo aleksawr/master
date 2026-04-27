@@ -19,11 +19,11 @@ library(dplyr)
 # -----------------------------
 # 1. File paths
 # -----------------------------
-file_run1 <- "runs/run_2026-04-20_23-32_nrep200/results_replication_level.csv"
-file_run2 <- "runs/run_2026-04-24_13-57_nrep200/results_replication_level.csv"
+file_run1 <- "runs/run_2026-04-25_13-14_nrep400/results_replication_level.csv"
+file_run2 <- "runs/run_2026-04-26_00-55_nrep400/results_replication_level.csv"
 
-run1_id <- "2026-04-20"
-run2_id <- "2026-04-24"
+run1_id <- "2026-04-25"
+run2_id <- "2026-04-26"
 
 out_dir <- "runs/mcse_outputs"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)

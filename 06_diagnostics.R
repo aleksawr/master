@@ -303,8 +303,138 @@ writeLines(
   ),
   con = file.path(diag_dir, "diagnostics_info.txt")
 )
+# ------------------------------------------------------------
+# 6. Selected 16 corner conditions
+# ------------------------------------------------------------
 
-cat("\nSaved diagnostic tables to:\n", diag_dir, "\n")
+sel_dir <- file.path(run_dir, "selected_conditions")
+dir.create(sel_dir, showWarnings = FALSE, recursive = TRUE)
+
+# -----------------------------
+# 6.1 Create condition-level means
+# -----------------------------
+
+condition_summary <- aggregate(
+  cbind(
+    r2_ols_base,
+    r2_ols_true_interaction,
+    r2_ols_oracle,
+    r2_xgb,
+    rmse_ols_base,
+    rmse_ols_true_interaction,
+    rmse_ols_oracle,
+    rmse_xgb,
+    delta_r2_xgb_vs_base,
+    delta_r2_xgb_vs_true,
+    delta_r2_xgb_vs_oracle,
+    delta_r2_true_vs_base,
+    delta_r2_oracle_vs_base,
+    delta_r2_oracle_vs_true
+  ) ~ condition_id + latent_R2 + rho_X + rho_Y + comp_linear + rho_betweenX,
+  data = results_df,
+  mean
+)
+
+# -----------------------------
+# 6.2 Select the 16 corner conditions
+# -----------------------------
+
+selected_16 <- subset(
+  condition_summary,
+  rho_betweenX == 0.00 &
+    rho_X %in% c(0.60, 1.00) &
+    rho_Y %in% c(0.60, 1.00) &
+    comp_linear %in% c(0.20, 0.80) &
+    latent_R2 %in% c(0.20, 0.80)
+)
+
+selected_16 <- selected_16[order(
+  selected_16$rho_X,
+  selected_16$rho_Y,
+  selected_16$comp_linear,
+  selected_16$latent_R2
+), ]
+
+selected_16$condition_label <- sprintf(
+  "rhoX=%.2f | rhoY=%.2f | linear=%.2f | latentR2=%.2f | rhoBetweenX=%.2f",
+  selected_16$rho_X,
+  selected_16$rho_Y,
+  selected_16$comp_linear,
+  selected_16$latent_R2,
+  selected_16$rho_betweenX
+)
+
+selected_16 <- selected_16[, c(
+  "condition_label",
+  setdiff(names(selected_16), "condition_label")
+)]
+
+# -----------------------------
+# 6.3 Save condition-level means
+# -----------------------------
+
+write.csv(
+  selected_16,
+  file = file.path(sel_dir, "selected_16_condition_means.csv"),
+  row.names = FALSE
+)
+
+# -----------------------------
+# 6.4 Create and save replication-level data
+#     This is the file you need for boxplots.
+# -----------------------------
+
+selected_16_replication <- subset(
+  results_df,
+  condition_id %in% selected_16$condition_id
+)
+
+selected_16_replication$condition_label <- selected_16$condition_label[
+  match(selected_16_replication$condition_id, selected_16$condition_id)
+]
+
+selected_16_replication <- selected_16_replication[order(
+  selected_16_replication$rho_X,
+  selected_16_replication$rho_Y,
+  selected_16_replication$comp_linear,
+  selected_16_replication$latent_R2,
+  selected_16_replication$condition_id
+), ]
+
+selected_16_replication <- selected_16_replication[, c(
+  "condition_label",
+  setdiff(names(selected_16_replication), "condition_label")
+)]
+
+write.csv(
+  selected_16_replication,
+  file = file.path(sel_dir, "selected_16_replication_level.csv"),
+  row.names = FALSE
+)
+
+# -----------------------------
+# 6.5 Checks
+# -----------------------------
+
+cat("\nSelected 16 condition means:\n")
+cat("Rows:", nrow(selected_16), "\n")
+cat("Unique condition IDs:", length(unique(selected_16$condition_id)), "\n")
+cat("Duplicated condition IDs:", any(duplicated(selected_16$condition_id)), "\n")
+
+cat("\nSelected 16 replication-level data:\n")
+cat("Rows:", nrow(selected_16_replication), "\n")
+cat("Unique condition IDs:", length(unique(selected_16_replication$condition_id)), "\n")
+cat("Replications per condition:\n")
+print(table(selected_16_replication$condition_id))
+
+cat("\nSaved selected 16 condition means to:\n")
+cat(file.path(sel_dir, "selected_16_condition_means.csv"), "\n")
+
+cat("\nSaved selected 16 replication-level data to:\n")
+cat(file.path(sel_dir, "selected_16_replication_level.csv"), "\n")
+
+cat("\nSaved diagnostic tables to:\n")
+cat(diag_dir, "\n")
 
 cat("\n==============================\n")
 cat("DIAGNOSTICS COMPLETE\n")

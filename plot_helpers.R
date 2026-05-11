@@ -69,7 +69,7 @@ theme_thesis <- function(base_size = 12) {
       panel.grid.major.x = element_blank(),
       panel.grid.major.y = element_line(linewidth = 0.25, colour = "grey85"),
       panel.spacing = unit(0.8, "lines"),
-      strip.text = element_text(face = "bold", size = base_size * 0.9),
+      strip.text = element_text(size = base_size * 0.9),
       legend.position = "bottom",
       legend.title = element_blank(),
       plot.title = element_text(face = "bold", hjust = 0.5, size = base_size * 1.05),
